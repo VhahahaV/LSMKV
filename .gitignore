@@ -1,3 +1,6 @@
 .DS_Store
 /.idea
 /doc
+/cmake-build-debug
+*.exe
+*.o

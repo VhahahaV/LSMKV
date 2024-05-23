@@ -26,7 +26,8 @@ private:
 		// Test multiple key-value pairs
 		for (i = 0; i < max; ++i) {
 			store.put(i, std::string(i+1, 's'));
-			EXPECT(std::string(i+1, 's'), store.get(i));
+            std::string ans = store.get(i);
+			EXPECT(std::string(i+1, 's'), ans);
 		}
 		phase();
 
@@ -111,7 +112,7 @@ int main(int argc, char *argv[])
 	std::cout << std::endl;
 	std::cout.flush();
 
-	CorrectnessTest test("./data", verbose);
+	CorrectnessTest test("./data", true);
 
 	test.start_test();
 

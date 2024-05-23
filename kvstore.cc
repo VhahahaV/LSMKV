@@ -3,6 +3,7 @@
 
 KVStore::KVStore(const std::string &dir): KVStoreAPI(dir)
 {
+
 }
 
 KVStore::~KVStore()
@@ -15,6 +16,9 @@ KVStore::~KVStore()
  */
 void KVStore::put(uint64_t key, const std::string &s)
 {
+    if(!memTable.put(key,s)){
+//        need load to ssTable and flush
+    }
 }
 /**
  * Returns the (string) value of the given key.
@@ -22,7 +26,8 @@ void KVStore::put(uint64_t key, const std::string &s)
  */
 std::string KVStore::get(uint64_t key)
 {
-	return "";
+    auto res = memTable.get(key);
+	return res;
 }
 /**
  * Delete the given key-value pair if it exists.
@@ -30,7 +35,8 @@ std::string KVStore::get(uint64_t key)
  */
 bool KVStore::del(uint64_t key)
 {
-	return false;
+
+	return memTable.del(key);
 }
 
 /**
@@ -39,6 +45,7 @@ bool KVStore::del(uint64_t key)
  */
 void KVStore::reset()
 {
+    memTable.reset();
 }
 
 /**
@@ -47,5 +54,6 @@ void KVStore::reset()
  * An empty string indicates not found.
  */
 void KVStore::scan(uint64_t key1, uint64_t key2, std::list<std::pair<uint64_t, std::string> > &list)
-{	
+{
+    memTable.scan(key1,key2,list);
 }

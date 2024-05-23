@@ -4,8 +4,8 @@
 
 #include "memTable.h"
 
-std::string MemTable::get(uint64_t k){
-    Node *cur = head;
+std::string MemTable::get[[maybe_unused, nodiscard]](uint64_t k){
+    Node *cur = mHead;
     while(cur){
         while(cur->right && cur->right->key < k){
             cur = cur->right;
@@ -15,35 +15,55 @@ std::string MemTable::get(uint64_t k){
         }
         cur = cur->down;
     }
-    return nullptr;
+    return {};
 }
 
-void MemTable::put(uint64_t k , std::string  v){
-    Node *cur = head;
+bool MemTable::put(uint64_t k, const std::string &v){
+    mSize += sizeof(uint64_t) + sizeof(uint32_t) + v.size();
+    if (mSize >= MAX_SIZE)
+        return false;
+    mSkipList.clear();
+    Node *cur = mHead;
+//    插入还是覆盖
+    bool cover = false;
     while(cur){
         while(cur->right && cur->right->key < k)
             cur = cur->right;
-        skipList.emplace_back(cur);
+        if(cur->right && cur->right->key == k){
+            cover = true;
+        }
+        mSkipList.emplace_back(cur);
         cur = cur->down;
     }
-
-    bool insert = true;
-    Node *downNode = nullptr;
-    while(insert && !skipList.empty()){
-        auto curPos = skipList.back();
-        skipList.pop_back();
-        curPos->right = new Node(k,v,curPos->right,downNode);
-        downNode = curPos->right;
-        insert = (rand() & 1);
+//    如果出现相同的值，则选择覆盖
+    if(cover){
+        while(!mSkipList.empty()){
+            auto curPos = mSkipList.back();
+            mSkipList.pop_back();
+            curPos->right->val = v;
+        }
     }
+    else{
+        bool insert = true;
+        Node *downNode = nullptr;
+        while (insert && !mSkipList.empty()) {
+            auto curPos = mSkipList.back();
+            mSkipList.pop_back();
+            curPos->right = new Node(k, v, curPos->right, downNode);
+            downNode = curPos->right;
+            insert = mRandomDistribution(gRandomDevice);
+//        insert = false;
+        }
 //        新加一层
-    if(insert){
-        head = new Node(0,"",new Node(k,v,nullptr,downNode),head);
+        if (insert) {
+            mHead = new Node(0, "", new Node(k, v, nullptr, downNode), mHead);
+        }
     }
+
 }
 
 bool MemTable::del(uint64_t k){
-    Node *cur = head;
+    auto cur = mHead;
     bool success = false;
     while(cur){
         while (cur->right && cur->right->key < k)
@@ -52,23 +72,29 @@ bool MemTable::del(uint64_t k){
             success = true;
             auto rmNode = cur->right;
             cur->right = cur->right->right;
-            delete rmNode;
             cur = cur->down;
+            delete rmNode;
         }
         else{
             cur = cur->down;
         }
     }
+    while (mHead && !mHead->right){
+        auto rmHead = mHead;
+        mHead = mHead->down;
+        delete rmHead;
+    }
+
     return success;
 }
 
 void MemTable::reset(){
-    skipList.clear();
-    auto cur = head;
+    mSkipList.clear();
+    auto cur = mHead;
     while (cur){
         auto tmp = cur;
         cur = cur->down;
-        while (tmp){
+        while (tmp != nullptr){
             auto next = tmp->right;
             delete tmp;
             tmp = next;
@@ -77,7 +103,7 @@ void MemTable::reset(){
 }
 
 void MemTable::scan(uint64_t key1, uint64_t key2, std::list<std::pair<uint64_t, std::string>> &list) {
-    Node *start = head , *end = head;
+    Node *start = mHead , *end = mHead;
     while(true){
 //        start 小于 key1
         while(start->right && start->right->key < key1)
