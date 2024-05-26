@@ -19,9 +19,10 @@ std::string MemTable::get[[maybe_unused, nodiscard]](uint64_t k){
 }
 
 bool MemTable::put(uint64_t k, const std::string &v){
-    mSize += sizeof(std::pair<uint64_t ,uint32_t >) + v.size();
-    if (mSize >= MAX_SIZE)
+    uint64_t newSize = sizeof(std::pair<uint64_t ,uint32_t >) + v.size();
+    if (mSize + newSize >= MAX_SIZE)
         return false;
+    mSize+=newSize;
     mSkipList.clear();
     Node *cur = mHead;
 //    插入还是覆盖
@@ -68,6 +69,7 @@ bool MemTable::put(uint64_t k, const std::string &v){
 bool MemTable::del(uint64_t k){
     auto cur = mHead;
     bool success = false;
+    uint64_t valSize;
     while(cur){
         while (cur->right && cur->right->key < k)
             cur = cur->right;
@@ -76,6 +78,7 @@ bool MemTable::del(uint64_t k){
             auto rmNode = cur->right;
             cur->right = cur->right->right;
             cur = cur->down;
+            valSize = rmNode->val.size();
             delete rmNode;
         }
         else{
@@ -87,8 +90,11 @@ bool MemTable::del(uint64_t k){
         mHead = mHead->down;
         delete rmHead;
     }
-    if(success)
+    if(success){
         mNum--;
+        uint64_t newSize = sizeof(std::pair<uint64_t ,uint32_t >) + valSize;
+        mSize -=  newSize;
+    }
     return success;
 }
 

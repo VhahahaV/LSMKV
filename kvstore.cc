@@ -17,7 +17,6 @@ void KVStore::put(uint64_t key, const std::string &s)
 {
     if(!mMemTable.put(key, s)){
 //        need load to ssTable and flush
-        SSTable ssTable(mMemTable);
         std::string curDir = mDir+"/level-"+std::to_string(mLevelNum);
         if(!utils::dirExists(curDir)){
             if(utils::mkdir(curDir.c_str()))
@@ -27,7 +26,10 @@ void KVStore::put(uint64_t key, const std::string &s)
         int filesNum = utils::scanDir(curDir,subFiles);
 //        if(filesNum < (1<<mLevelNum)){
 //            std::cout << "prepare mk file : " << filesNum+1 << "when key = " << key << std::endl;
-            ssTable.flush(curDir+"/"+std::to_string(filesNum+1)+".sst");
+            std::string filePath = curDir+"/"+std::to_string(filesNum+1)+".sst";
+            SSTable ssTable(mMemTable,filePath);
+            ssTable.flush(filePath);
+            ssTable.cleanData();
             mSSTableCache.emplace_back(ssTable);
 
 //            test flush , index's flush fails
@@ -62,11 +64,9 @@ std::string KVStore::get(uint64_t key)
                 numBound += (1 << (curLevel + 1));
                 order=1;
             }
-            auto &ssTable = mSSTableCache[i];
+            auto &ssTable = mSSTableCache[totalNum-i-1];
             if(ssTable.existKey(key)){
-                std::string filePath = mDir + "/level-" + std::to_string(curLevel)
-                        + "/" + std::to_string(order) + ".sst";
-                std::string val = ssTable.get(filePath,key);
+                std::string val = ssTable.get(key);
                 if(!val.empty()){
                     if(val == "~DELETED~")
                         return {};
@@ -77,6 +77,8 @@ std::string KVStore::get(uint64_t key)
         }
         return {};
     }
+    if(res == "~DELETED~")
+        return {};
     return res;
 
 }

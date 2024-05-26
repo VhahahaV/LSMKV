@@ -9,11 +9,12 @@
 //https://blog.csdn.net/Rasin_Wu/article/details/79048094 应该考虑二进制读写，已达到byte读写精度
 
 
-SSTable::SSTable(const MemTable &memTable){
+SSTable::SSTable(const MemTable &memTable,const std::string &path){
     mTimeStamp = SSTable::gTimeStamp++;
 //    skip BloomFilter and Header
     mNum = memTable.mNum;
-//    34632
+    mSize = memTable.mSize;
+    mPath = path;
     uint32_t offset = BLOOM_FILTER_SIZE / 8 + sizeof(uint64_t) * 4 + (sizeof(indexData)) * mNum;
 
     auto cur = memTable.mHead;
@@ -26,17 +27,12 @@ SSTable::SSTable(const MemTable &memTable){
         mIndex.emplace_back(cur->key,offset);
         mBloomFilter.add(cur->key);
         mData+=cur->val;
-//        mData += std::string(cur->val.size()%BYTE_SIZE,' ');
-//        有一部分padding的空间。保证对齐
-//        offset += (cur->val.size() + BYTE_SIZE - 1) / BYTE_SIZE;
-//        二进制读写，不padding，直接按字符数读取
         offset += cur->val.size();
         if(!cur->right){
             mMax = cur->key;
         }
         cur = cur->right;
     }
-
 }
 
 //使用fstream,参考：https://blog.csdn.net/Long_xu/article/details/137073414
@@ -113,15 +109,15 @@ bool SSTable::existKey(uint64_t key) {
     return mBloomFilter.contain(key);
 }
 
-std::string SSTable::get(const std::string &dir,uint64_t key){
+std::string SSTable::get(uint64_t key){
     auto index = std::lower_bound(mIndex.begin(),mIndex.end(),indexData(key,0));
     if(index == mIndex.end() || index->first != key)
         return {};
     auto offset = index->second;
-    auto len = (index+1)->second - offset;
-    std::ifstream input(dir,std::ios::binary);
+    uint32_t len = (*index == mIndex.back()) ? mSize - offset :(index+1)->second - offset ;
+    std::ifstream input(mPath,std::ios::binary);
     if(!input.good()){
-        std::cout << "when get dir :" << dir;
+        std::cout << "when get dir :" << mPath;
         throw std::runtime_error("can not open the file");
     }
     input.seekg(offset);
@@ -129,6 +125,10 @@ std::string SSTable::get(const std::string &dir,uint64_t key){
     input.read(val.data(),len);
     input.close();
     return val;
+}
+
+void SSTable::cleanData() {
+    mData.clear();
 }
 
 void SSTable::test() {

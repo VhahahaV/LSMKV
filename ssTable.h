@@ -27,13 +27,15 @@ protected:
     std::string mData{};
 //    size
     uint32_t mSize = 0;
+    std::string mPath{};
 public:
-    explicit SSTable(const MemTable &memTable);
+    explicit SSTable(const MemTable &memTable,const std::string &path);
     explicit SSTable(const std::string &dir);
     void flush(const std::string &dir);
     bool reachLimit(uint32_t newSize);
     bool existKey(uint64_t key);
-    std::string get(const std::string &dir,uint64_t key);
+    std::string get(uint64_t key);
+    void cleanData();
     void test();
 };
 

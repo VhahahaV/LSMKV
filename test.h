@@ -28,9 +28,9 @@ protected:
 		if (verbose) {
 			std::cerr << "TEST Error @" << file << ":" << line;
             if constexpr (std::is_same_v<T, std::string>) {
-                std::cerr << ", exp length " << exp.size()<< std::endl;
+                std::cerr << ", exp length " << exp<< std::endl;
+                std::cerr << ", got " << got << std::endl;
             }
-			std::cerr << ", got " << got << std::endl;
 		}
 	}
 
