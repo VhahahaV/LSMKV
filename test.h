@@ -27,8 +27,8 @@ protected:
 		}
 		if (verbose) {
 			std::cerr << "TEST Error @" << file << ":" << line;
-			std::cerr << ", expected " << exp;
-			std::cerr << ", got " << got << std::endl;
+            std::cerr << ", expected " <<  exp.size();
+			std::cerr << ", got " <<  got.size() << std::endl;
 		}
 	}
 

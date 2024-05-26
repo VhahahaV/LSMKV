@@ -1,7 +1,6 @@
 #include "kvstore.h"
-#include <string>
 
-KVStore::KVStore(const std::string &dir): KVStoreAPI(dir)
+KVStore::KVStore(const std::string &dir): KVStoreAPI(dir),mDir(dir)
 {
 
 }
@@ -16,8 +15,25 @@ KVStore::~KVStore()
  */
 void KVStore::put(uint64_t key, const std::string &s)
 {
-    if(!memTable.put(key,s)){
+    if(!mMemTable.put(key, s)){
 //        need load to ssTable and flush
+        SSTable ssTable(mMemTable);
+        std::string curDir = mDir+"/level-"+std::to_string(mLevelNum);
+        if(!utils::dirExists(curDir)){
+            if(utils::mkdir(curDir.c_str()))
+                throw std::runtime_error("can't mkdir");
+        }
+        std::vector<std::string> subFiles;
+        int filesNum = utils::scanDir(curDir,subFiles);
+//        if(filesNum < (1<<mLevelNum)){
+            ssTable.flush(curDir+"/"+std::to_string(filesNum+1)+".sst");
+            mSSTableCache.emplace_back(ssTable);
+//        }
+//        else{
+//            need compaction
+//        }
+
+        mMemTable.reset();
     }
 }
 /**
@@ -26,8 +42,35 @@ void KVStore::put(uint64_t key, const std::string &s)
  */
 std::string KVStore::get(uint64_t key)
 {
-    auto res = memTable.get(key);
-	return res;
+    auto res = mMemTable.get(key);
+	if(res.empty()){
+        int curLevel = 0;
+        int numBound = 2;
+        int totalNum = (int)mSSTableCache.size();
+        for(int i = 1,order = 0; i <= totalNum ; i++,order++){
+//            计算在cache中的ssTable的level和次序
+            if(i > numBound){
+                curLevel++;
+                numBound += (1 << (curLevel + 1));
+                order=0;
+            }
+            auto &ssTable = mSSTableCache[i];
+            if(ssTable.existKey(key)){
+                std::string filePath = mDir + "/level-" + std::to_string(curLevel)
+                        + "/" + std::to_string(order) + ".sst";
+                std::string val = ssTable.get(filePath,key);
+                if(!val.empty()){
+                    if(val == "~DELETED~")
+                        return {};
+                    else
+                        return val;
+                }
+            }
+        }
+        return {};
+    }
+    return res;
+
 }
 /**
  * Delete the given key-value pair if it exists.
@@ -35,8 +78,12 @@ std::string KVStore::get(uint64_t key)
  */
 bool KVStore::del(uint64_t key)
 {
-
-	return memTable.del(key);
+    if(get(key).empty())
+        return false;
+	if(!mMemTable.del(key)){
+        put(key,"~DELETED~");
+    }
+    return true;
 }
 
 /**
@@ -45,7 +92,9 @@ bool KVStore::del(uint64_t key)
  */
 void KVStore::reset()
 {
-    memTable.reset();
+    mMemTable.reset();
+    mSSTableCache.clear();
+    mLevelNum = 0;
 }
 
 /**
@@ -55,5 +104,7 @@ void KVStore::reset()
  */
 void KVStore::scan(uint64_t key1, uint64_t key2, std::list<std::pair<uint64_t, std::string> > &list)
 {
-    memTable.scan(key1,key2,list);
+    mMemTable.scan(key1, key2, list);
 }
+
+

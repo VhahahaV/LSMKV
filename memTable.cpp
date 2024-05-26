@@ -40,7 +40,8 @@ bool MemTable::put(uint64_t k, const std::string &v){
         while(!mSkipList.empty()){
             auto curPos = mSkipList.back();
             mSkipList.pop_back();
-            curPos->right->val = v;
+            if(curPos->right)
+                curPos->right->val = v;
         }
     }
     else{
@@ -61,7 +62,7 @@ bool MemTable::put(uint64_t k, const std::string &v){
 //        增加mNum的数量
         mNum++;
     }
-
+    return true;
 }
 
 bool MemTable::del(uint64_t k){
@@ -70,7 +71,7 @@ bool MemTable::del(uint64_t k){
     while(cur){
         while (cur->right && cur->right->key < k)
             cur = cur->right;
-        if(cur->right && cur->right->key == k){
+        if(cur->right && cur->right->key == k && cur->right->val != "~DELETED~"){
             success = true;
             auto rmNode = cur->right;
             cur->right = cur->right->right;
@@ -102,6 +103,9 @@ void MemTable::reset(){
             tmp = next;
         }
     }
+    mHead = nullptr;
+    mNum = 0;
+    mSize = 32 + 10240;
 }
 
 void MemTable::scan(uint64_t key1, uint64_t key2, std::list<std::pair<uint64_t, std::string>> &list) {

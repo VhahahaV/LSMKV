@@ -21,6 +21,8 @@ public:
     [[maybe_unused]] bool contain(uint64_t key);
 
     [[maybe_unused]] void add(uint64_t key);
+
+    void flush(char* content);
 //    void
 
 };
