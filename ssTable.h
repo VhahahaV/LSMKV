@@ -34,6 +34,7 @@ public:
     bool reachLimit(uint32_t newSize);
     bool existKey(uint64_t key);
     std::string get(const std::string &dir,uint64_t key);
+    void test();
 };
 
 

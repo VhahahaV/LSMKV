@@ -26,8 +26,13 @@ void KVStore::put(uint64_t key, const std::string &s)
         std::vector<std::string> subFiles;
         int filesNum = utils::scanDir(curDir,subFiles);
 //        if(filesNum < (1<<mLevelNum)){
+//            std::cout << "prepare mk file : " << filesNum+1 << "when key = " << key << std::endl;
             ssTable.flush(curDir+"/"+std::to_string(filesNum+1)+".sst");
             mSSTableCache.emplace_back(ssTable);
+
+//            test flush , index's flush fails
+            SSTable test(curDir+"/"+std::to_string(filesNum+1)+".sst");
+            test.test();
 //        }
 //        else{
 //            need compaction
@@ -35,6 +40,7 @@ void KVStore::put(uint64_t key, const std::string &s)
 
         mMemTable.reset();
     }
+    mMemTable.put(key, s);
 }
 /**
  * Returns the (string) value of the given key.
@@ -45,14 +51,16 @@ std::string KVStore::get(uint64_t key)
     auto res = mMemTable.get(key);
 	if(res.empty()){
         int curLevel = 0;
-        int numBound = 2;
+//        暂时这是为最大值，因为还没有分层
+        int numBound = INT32_MAX;
         int totalNum = (int)mSSTableCache.size();
-        for(int i = 1,order = 0; i <= totalNum ; i++,order++){
+        if(!totalNum) return {};
+        for(int i = 0,order = 1; i < totalNum ; i++,order++){
 //            计算在cache中的ssTable的level和次序
             if(i > numBound){
                 curLevel++;
                 numBound += (1 << (curLevel + 1));
-                order=0;
+                order=1;
             }
             auto &ssTable = mSSTableCache[i];
             if(ssTable.existKey(key)){
@@ -107,4 +115,9 @@ void KVStore::scan(uint64_t key1, uint64_t key2, std::list<std::pair<uint64_t, s
     mMemTable.scan(key1, key2, list);
 }
 
+void KVStore::test() {
 
+    for(auto &t : mSSTableCache){
+        t.test();
+    }
+}

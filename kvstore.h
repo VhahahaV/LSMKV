@@ -6,6 +6,7 @@
 #include "utils.h"
 #include <optional>
 #include <string>
+#include <iostream>
 #include <memory>
 class KVStore : public KVStoreAPI {
 	// You can add your implementation here
@@ -31,4 +32,5 @@ public:
 
 	void scan(uint64_t key1, uint64_t key2, std::list<std::pair<uint64_t, std::string> > &list) override;
 
+    void test();
 };

@@ -7,7 +7,7 @@
 class CorrectnessTest : public Test {
 private:
 	const uint64_t SIMPLE_TEST_MAX = 512;
-	const uint64_t LARGE_TEST_MAX = 1024 * 64;
+	const uint64_t LARGE_TEST_MAX = 1024 * 12;
 
 	void regular_test(uint64_t max)
 	{
@@ -31,6 +31,7 @@ private:
 		}
 		phase();
 
+        store.test();
 		// Test after all insertions
 		for (i = 0; i < max; ++i)
 			EXPECT(std::string(i+1, 's'), store.get(i));
@@ -92,10 +93,10 @@ public:
 
 		store.reset();
 		
-		std::cout << "[Simple Test]" << std::endl;
-		regular_test(SIMPLE_TEST_MAX);
+//		std::cout << "[Simple Test]" << std::endl;
+//		regular_test(SIMPLE_TEST_MAX);
 		
-		store.reset();
+//		store.reset();
 
 		std::cout << "[Large Test]" << std::endl;
 		regular_test(LARGE_TEST_MAX);

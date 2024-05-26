@@ -4,8 +4,9 @@
 
 #include "ssTable.h"
 #include <fstream>
+#include <iostream>
 //   将memTable转为SSTable
-//https://blog.csdn.net/Rasin_Wu/article/details/79048094 应该考虑二进制读写，已达到bit的读写精度
+//https://blog.csdn.net/Rasin_Wu/article/details/79048094 应该考虑二进制读写，已达到byte读写精度
 SSTable::SSTable(const MemTable &memTable){
     mTimeStamp = SSTable::gTimeStamp++;
 //    skip BloomFilter and Header
@@ -14,6 +15,7 @@ SSTable::SSTable(const MemTable &memTable){
     auto cur = memTable.mHead;
     while(cur->down)
         cur = cur->down;
+    cur = cur->right;
     mMin = cur->key;
 
     while(cur){
@@ -39,6 +41,7 @@ SSTable::SSTable(const std::string &dir){
     std::ifstream input;
     input.open(dir);
     if(!input.good()){
+        std::cout << "when init SSTable dir :" << dir;
         throw std::runtime_error("can not open the file");
     }
 //    header
@@ -51,8 +54,10 @@ SSTable::SSTable(const std::string &dir){
     input.read(bfContent,sizeof(bfContent));
     mBloomFilter = BloomFilter(bfContent);
 //    indexes
-    auto *indexContent = new indexData [mNum];
-    input.read((char *)indexContent,(int)(sizeof(uint32_t) +sizeof(uint64_t)) * mNum );
+    uint32_t indexSize= mNum * sizeof(indexData);
+    std::vector<char> indexBuffer(indexSize);
+    input.read(indexBuffer.data(),indexSize);
+    auto indexContent = reinterpret_cast<indexData *>(indexBuffer.data());
     for(int i = 0 ; i < mNum ; i++){
         mIndex.emplace_back(indexContent[i]);
     }
@@ -65,6 +70,7 @@ void SSTable::flush(const std::string &dir) {
     std::ofstream output;
     output.open(dir);
     if(!output.good()){
+        std::cout << "when flush dir :" << dir;
         throw std::runtime_error("can not open the file");
     }
     //    header
@@ -78,23 +84,35 @@ void SSTable::flush(const std::string &dir) {
     mBloomFilter.flush(bfContent);
     output.write(bfContent,sizeof(bfContent));
 //    indexes
-    auto *indexContent = new indexData [mNum];
-    for(int i = 0 ; i < mNum ; i++){
-        indexContent[i] = mIndex[i];
+    uint32_t indexSize= mNum * sizeof(indexData);
+    std::vector<char> indexBuffer(indexSize);
+    auto indexPtr = indexBuffer.data();
+    for (int i = 0; i < mNum; ++i) {
+        memcpy(indexPtr, &mIndex[i], sizeof(indexData));
+        indexPtr += sizeof(indexData);
     }
-    output.write((char *)indexContent,(int)(sizeof(uint32_t) +sizeof(uint64_t)) * mNum );
+    // 将整个缓冲区写入文件
+    output.write(indexBuffer.data(), indexSize);
+//    auto *indexContent = new indexData [mNum];
+//    for(int i = 0 ; i < mNum ; i++){
+//        indexContent[i] = mIndex[i];
+//    }
+//    output.write((char *)indexContent,(int)(sizeof(uint32_t) +sizeof(uint64_t)) * mNum );
+
+
 //  data
     const char *data = mData.c_str();
     output.write(data,sizeof(data));
 
     output.close();
+
 }
 bool SSTable::reachLimit(uint32_t newSize){
 
 }
 
 bool SSTable::existKey(uint64_t key) {
-    if(key<mMin || key > mMin)
+    if(key< mMin || key > mMax)
         return false;
     return mBloomFilter.contain(key);
 }
@@ -107,6 +125,7 @@ std::string SSTable::get(const std::string &dir,uint64_t key){
     auto len = (index+1)->second - offset;
     std::ifstream input(dir);
     if(!input.good()){
+        std::cout << "when get dir :" << dir;
         throw std::runtime_error("can not open the file");
     }
     input.seekg(offset);
@@ -117,4 +136,10 @@ std::string SSTable::get(const std::string &dir,uint64_t key){
     return val;
 }
 
-
+void SSTable::test() {
+    std::cout <<"SStable info : "<<  mTimeStamp << " " << mNum << " " << mMin << " " << mMax << std::endl;
+    std::cout << "Index nums : " << mIndex.size() << " " << std::endl;
+    for (int i = 0; i < 5; ++i) {
+        std::cout << mIndex[i].first << "  " << mIndex[i].second << std::endl;
+    }
+}
