@@ -31,16 +31,16 @@ void KVStore::put(uint64_t key, const std::string &s)
             mSSTableCache.emplace_back(ssTable);
 
 //            test flush , index's flush fails
-            SSTable test(curDir+"/"+std::to_string(filesNum+1)+".sst");
-            test.test();
+//            SSTable test(curDir+"/"+std::to_string(filesNum+1)+".sst");
+//            test.test();
 //        }
 //        else{
 //            need compaction
 //        }
 
         mMemTable.reset();
+        mMemTable.put(key, s);
     }
-    mMemTable.put(key, s);
 }
 /**
  * Returns the (string) value of the given key.

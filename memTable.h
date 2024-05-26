@@ -25,11 +25,11 @@ protected:
     inline static std::random_device gRandomDevice{};
     std::uniform_int_distribution<int> mRandomDistribution{false, true};
     Node *mHead = nullptr;
-    int mNum = 0;
+    uint32_t mNum = 0;
     uint64_t mSize = 32 + 10240;
     std::vector<Node *> mSkipList{};
-    constexpr static int MAX_LEVEL = 32;
-    const int MAX_SIZE = 1024*1024*2;
+    inline static constexpr int MAX_LEVEL = 32;
+    inline static constexpr int MAX_SIZE = 1024*1024*2;
 
 public:
     explicit MemTable(){

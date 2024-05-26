@@ -19,7 +19,7 @@ std::string MemTable::get[[maybe_unused, nodiscard]](uint64_t k){
 }
 
 bool MemTable::put(uint64_t k, const std::string &v){
-    mSize += sizeof(uint64_t) + sizeof(uint32_t) + (v.size() + 7) / 8;
+    mSize += sizeof(std::pair<uint64_t ,uint32_t >) + v.size();
     if (mSize >= MAX_SIZE)
         return false;
     mSkipList.clear();
@@ -87,7 +87,8 @@ bool MemTable::del(uint64_t k){
         mHead = mHead->down;
         delete rmHead;
     }
-
+    if(success)
+        mNum--;
     return success;
 }
 

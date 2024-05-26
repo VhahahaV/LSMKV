@@ -31,7 +31,7 @@ private:
 		}
 		phase();
 
-        store.test();
+//        store.test();
 		// Test after all insertions
 		for (i = 0; i < max; ++i)
 			EXPECT(std::string(i+1, 's'), store.get(i));

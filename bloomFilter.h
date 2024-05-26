@@ -8,7 +8,7 @@
 #include "MurmurHash3.h"
 #include <cstdint>
 //MAX_SIZE bits
-static constexpr int BLOOM_FILTER_SIZE = 1024 * 10 * 8;
+const int BLOOM_FILTER_SIZE = 1024 * 10 * 8;
 
 class BloomFilter {
 protected:
