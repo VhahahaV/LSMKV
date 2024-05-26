@@ -25,6 +25,7 @@ protected:
     inline static std::random_device gRandomDevice{};
     std::uniform_int_distribution<int> mRandomDistribution{false, true};
     Node *mHead = nullptr;
+    int mNum = 0;
     uint64_t mSize = 32 + 10240;
     std::vector<Node *> mSkipList{};
     constexpr static int MAX_LEVEL = 32;

@@ -19,7 +19,7 @@ std::string MemTable::get[[maybe_unused, nodiscard]](uint64_t k){
 }
 
 bool MemTable::put(uint64_t k, const std::string &v){
-    mSize += sizeof(uint64_t) + sizeof(uint32_t) + v.size();
+    mSize += sizeof(uint64_t) + sizeof(uint32_t) + (v.size() + 7) / 8;
     if (mSize >= MAX_SIZE)
         return false;
     mSkipList.clear();
@@ -58,6 +58,8 @@ bool MemTable::put(uint64_t k, const std::string &v){
         if (insert) {
             mHead = new Node(0, "", new Node(k, v, nullptr, downNode), mHead);
         }
+//        增加mNum的数量
+        mNum++;
     }
 
 }

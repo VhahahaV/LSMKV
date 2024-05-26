@@ -10,11 +10,12 @@
 #include <string>
 #include "memTable.h"
 uint32_t gTimeStamp = 0;
+//constexpr int BYTE_SIZE = 8;
 class SSTable {
 protected:
 //    HEADER 部分
     uint32_t mTimeStamp;
-    uint32_t mNUm = 0;
+    uint32_t mNum = 0;
     uint32_t mMin = UINT32_MAX;
     uint32_t mMax = 0;
 //    BF 布隆过滤器区
@@ -23,11 +24,12 @@ protected:
     using indexData = std::pair<uint64_t ,uint32_t>;
     std::vector<indexData> mIndex{};
 //    data 数据区 (不包含对应的 key)
-    std::string mDat{};
+    std::string mData{};
 //    size
     uint32_t mSize = 0;
 public:
     explicit SSTable(const MemTable &memTable);
+    explicit SSTable(const std::string &dir);
     void flush();
     bool reachLimit(uint32_t newSize);
 

@@ -16,6 +16,7 @@ protected:
 
 public:
     explicit BloomFilter() = default;
+    explicit BloomFilter(const char* content);
 
     [[maybe_unused]] bool contain(uint64_t key);
 
