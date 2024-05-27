@@ -40,7 +40,7 @@ public:
     bool del(uint64_t k);
     void reset();
     void scan(uint64_t key1, uint64_t key2, std::list<std::pair<uint64_t, std::string> > &list);
-    ~MemTable() = default;// todo:
+    ~MemTable();// todo:
 
 
 };

@@ -13,6 +13,7 @@ KVStore::~KVStore()
  * Insert/Update the key-value pair.
  * No return values for simplicity.
  */
+
 void KVStore::put(uint64_t key, const std::string &s)
 {
     if(!mMemTable.put(key, s)){
@@ -26,6 +27,9 @@ void KVStore::put(uint64_t key, const std::string &s)
         int filesNum = utils::scanDir(curDir,subFiles);
 //        if(filesNum < (1<<mLevelNum)){
 //            std::cout << "prepare mk file : " << filesNum+1 << "when key = " << key << std::endl;
+
+            // os.path.join('./1', '/media/ftc/A')
+
             std::string filePath = curDir+"/"+std::to_string(filesNum+1)+".sst";
             SSTable ssTable(mMemTable,filePath);
             ssTable.flush(filePath);

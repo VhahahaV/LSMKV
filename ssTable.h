@@ -20,21 +20,22 @@ protected:
     uint32_t mMax = 0;
 //    BF 布隆过滤器区
     BloomFilter mBloomFilter;
+    inline static constexpr uint32_t BLOOM_FILTER_SIZE = 1024 * 10;
 //    Index 索引区
     using indexData = std::pair<uint64_t ,uint32_t>;
     std::vector<indexData> mIndex{};
 //    data 数据区 (不包含对应的 key)
     std::string mData{};
-//    size
+//    mSize
     uint32_t mSize = 0;
     std::string mPath{};
 public:
     explicit SSTable(const MemTable &memTable,const std::string &path);
     explicit SSTable(const std::string &dir);
-    void flush(const std::string &dir);
-    bool reachLimit(uint32_t newSize);
-    bool existKey(uint64_t key);
-    std::string get(uint64_t key);
+    void flush(const std::string &dir) const;
+    [[nodiscard]] bool reachLimit(uint32_t newSize) const ;
+    bool existKey[[nodiscard]](uint64_t key) const ;
+    [[nodiscard]] std::string get(uint64_t key) const;
     void cleanData();
     void test();
 };

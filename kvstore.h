@@ -18,7 +18,7 @@ private:
     int mLevelNum = 0;
 
 public:
-	KVStore(const std::string &dir);
+	explicit KVStore(const std::string &dir);
 
 	~KVStore();
 

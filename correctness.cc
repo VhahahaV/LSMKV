@@ -50,7 +50,7 @@ private:
 //		}
 //
 //		store.scan(0, max / 2 - 1, list_stu);
-//		EXPECT(list_ans.size(), list_stu.size());
+//		EXPECT(list_ans.mSize(), list_stu.mSize());
 //
 //		auto ap = list_ans.begin();
 //		auto sp = list_stu.begin();

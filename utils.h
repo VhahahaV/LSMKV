@@ -38,7 +38,7 @@ namespace utils{
     #if defined(_WIN32) && !defined(__MINGW32__) 
     static inline int scanDir(std::string path, std::vector<std::string> &ret){
         std::string extendPath;
-        if(path[path.size() - 1] == '/'){
+        if(path[path.mSize() - 1] == '/'){
             extendPath = path + "*";
         }
         else{
@@ -59,7 +59,7 @@ namespace utils{
             }
         }
         FindClose(h);
-        return ret.size();
+        return ret.mSize();
     }
     #endif
     #if defined(__linux__) || defined(__MINGW32__) || defined(__APPLE__)

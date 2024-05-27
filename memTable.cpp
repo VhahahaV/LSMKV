@@ -115,6 +115,10 @@ void MemTable::reset(){
     mSize = 32 + 10240;
 }
 
+MemTable::~MemTable(){
+    this->reset();
+}
+
 void MemTable::scan(uint64_t key1, uint64_t key2, std::list<std::pair<uint64_t, std::string>> &list) {
     Node *start = mHead , *end = mHead;
     while(true){

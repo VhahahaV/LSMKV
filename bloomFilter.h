@@ -7,22 +7,22 @@
 #include "bitset"
 #include "MurmurHash3.h"
 #include <cstdint>
+#include <vector>
 //MAX_SIZE bits
-const int BLOOM_FILTER_SIZE = 1024 * 10 * 8;
 
 class BloomFilter {
 protected:
-    std::bitset<BLOOM_FILTER_SIZE> mContent{};
-
+//    std::bitset<BLOOM_FILTER_SIZE> mContent{};
+    std::vector<std::bitset<64>> mContent{};
+    const uint32_t mSize = 0;
 public:
-    explicit BloomFilter() = default;
-    explicit BloomFilter(const char* content);
-
-    [[maybe_unused]] bool contain(uint64_t key);
-
+    explicit BloomFilter(uint32_t bloomFilterSize);
+    [[maybe_unused]] explicit BloomFilter(const std::vector<uint64_t> &content,uint32_t bloomFilterSize);
+    [[maybe_unused, nodiscard]] bool contain(uint64_t key) const;
     [[maybe_unused]] void add(uint64_t key);
 
-    void flush(char* content);
+    void flush(std::vector<uint64_t> &content) const;
+    void load(const std::vector<uint64_t> &content);
 //    void
 
 };

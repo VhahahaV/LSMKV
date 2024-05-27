@@ -9,13 +9,13 @@
 //https://blog.csdn.net/Rasin_Wu/article/details/79048094 应该考虑二进制读写，已达到byte读写精度
 
 
-SSTable::SSTable(const MemTable &memTable,const std::string &path){
+SSTable::SSTable(const MemTable &memTable,const std::string &path): mBloomFilter(BLOOM_FILTER_SIZE){
     mTimeStamp = SSTable::gTimeStamp++;
 //    skip BloomFilter and Header
     mNum = memTable.mNum;
     mSize = memTable.mSize;
     mPath = path;
-    uint32_t offset = BLOOM_FILTER_SIZE / 8 + sizeof(uint64_t) * 4 + (sizeof(indexData)) * mNum;
+    uint32_t offset = BLOOM_FILTER_SIZE + sizeof(uint64_t) * 4 + (sizeof(indexData)) * mNum;
 
     auto cur = memTable.mHead;
     while(cur->down)
@@ -37,7 +37,8 @@ SSTable::SSTable(const MemTable &memTable,const std::string &path){
 
 //使用fstream,参考：https://blog.csdn.net/Long_xu/article/details/137073414
 //https://blog.csdn.net/u011028345/article/details/76563245
-SSTable::SSTable(const std::string &dir){
+SSTable::SSTable(const std::string &dir): mBloomFilter(BLOOM_FILTER_SIZE){
+    mPath = dir;
     std::ifstream input;
     input.open(dir,std::ios::binary);
     if(!input.good()){
@@ -45,28 +46,24 @@ SSTable::SSTable(const std::string &dir){
         throw std::runtime_error("can not open the file");
     }
 //    header
-    uint64_t header[4];
-    input.read((char *)header, sizeof(header));
+    std::vector<uint64_t> header(4);
+    input.read(reinterpret_cast<char *>(header.data()), sizeof(uint64_t)*4);
     mTimeStamp = header[0],mNum = header[1];
     mMin = header[2],mMax = header[3];
 //    BloomFilter
-    char bfContent[10240];
-    input.read(bfContent,sizeof(bfContent));
-    mBloomFilter = BloomFilter(bfContent);
+    std::vector<uint64_t> bfContent(BLOOM_FILTER_SIZE/8);
+    input.read(reinterpret_cast<char *>(bfContent.data()), BLOOM_FILTER_SIZE);
+    mBloomFilter.load(bfContent);
 //    indexes
     uint32_t indexSize= mNum * sizeof(indexData);
-    std::vector<char> indexBuffer(indexSize);
-    input.read(indexBuffer.data(),indexSize);
-    auto indexContent = reinterpret_cast<indexData *>(indexBuffer.data());
-    for(int i = 0 ; i < mNum ; i++){
-        mIndex.emplace_back(indexContent[i]);
-    }
+    input.read(reinterpret_cast<char *>(mIndex.data()),indexSize);
+
 // ignore data
     input.close();
 }
 
 //将ssTable落入磁盘
-void SSTable::flush(const std::string &dir) {
+void SSTable::flush(const std::string &dir) const{
     std::ofstream output;
     output.open(dir,std::ios::binary);
     if(!output.good()){
@@ -74,42 +71,34 @@ void SSTable::flush(const std::string &dir) {
         throw std::runtime_error("can not open the file");
     }
     //    header
-    uint64_t header[4];
+    std::vector<uint64_t> header(4);
     header[0] = mTimeStamp,header[1] = mNum;
     header[2] = mMin,header[3] = mMax;
-    output.write((char *)header, sizeof(header));
+    output.write(reinterpret_cast<char *>(header.data()), 4* sizeof(uint64_t));
 //    BloomFilter
-    static char bfContent[BLOOM_FILTER_SIZE/8];
+    std::vector<uint64_t> bfContent(BLOOM_FILTER_SIZE/8);
     mBloomFilter.flush(bfContent);
-    output.write(bfContent,sizeof(bfContent));
+    output.write(reinterpret_cast<char *>(bfContent.data()),BLOOM_FILTER_SIZE);
 //    indexes
     uint32_t indexSize= mNum * (sizeof(indexData));
-    std::vector<char> indexBuffer(indexSize);
-    auto indexPtr = indexBuffer.data();
-    for (int i = 0; i < mNum; ++i) {
-        memcpy(indexPtr, &mIndex[i], sizeof(indexData));
-        indexPtr += sizeof(indexData);
-    }
-    // 将整个缓冲区写入文件
-    output.write(indexBuffer.data(), indexSize);
+    output.write(reinterpret_cast<const char *>(mIndex.data()), indexSize);
 //  data
-    const char *data = mData.c_str();
     int dataSize = (int)mData.size();
-    output.write(data, dataSize);
+    output.write(mData.data(),dataSize);
     output.close();
 
 }
-bool SSTable::reachLimit(uint32_t newSize){
+bool SSTable::reachLimit(uint32_t newSize) const {
 
 }
 
-bool SSTable::existKey(uint64_t key) {
+bool SSTable::existKey(uint64_t key) const {
     if(key< mMin || key > mMax)
         return false;
     return mBloomFilter.contain(key);
 }
 
-std::string SSTable::get(uint64_t key){
+std::string SSTable::get(uint64_t key) const{
     auto index = std::lower_bound(mIndex.begin(),mIndex.end(),indexData(key,0));
     if(index == mIndex.end() || index->first != key)
         return {};
