@@ -43,7 +43,7 @@ std::string Level::get(uint64_t key){
 }
 
 bool Level::exceedLimit() const{
-    return mSSTableCache.size() <= 1<<(mRank+1);
+    return mSSTableCache.size() > 1<<(mRank+1);
 }
 void Level::compact(Level &nextLevel){
     std::vector<std::pair<uint64_t,std::string>> vec;
@@ -94,7 +94,8 @@ void Level::nextSelect(uint64_t minKey, uint64_t maxKey, std::vector<std::pair<u
 void Level::nextMerge(std::vector<std::pair<uint64_t,std::string>> &vec, const uint64_t &maxTimeStamp){
     int newFileNum = 0;
     while (!vec.empty()){
-        mSSTableCache.emplace_back(vec, maxTimeStamp);
+        SSTable ssTable(vec, maxTimeStamp);
+        mSSTableCache.emplace_back(std::move(ssTable));
         newFileNum++;
     }
 

@@ -4,6 +4,17 @@ KVStore::KVStore(const std::string &dir): KVStoreAPI(dir),mDir(dir)
 {
 //    持久话，persistence，需要从文件夹中load所有数据
     mLevel.reserve(100);
+    std::vector<std::string > subdir;
+    utils::scanDir(dir,subdir);
+    for(auto &sub:subdir){
+        auto subFiles = dir+"/"+sub;
+        std::vector<std::string > subvec;
+        utils::scanDir(subFiles,subvec);
+        std::cout << "rm dir : " << subFiles << std::endl;
+        for(auto &f:subvec)
+            utils::rmfile((subFiles+"/"+f).c_str());
+        utils::rmdir(subFiles.c_str());
+    }
 }
 
 KVStore::~KVStore()
@@ -28,7 +39,7 @@ void KVStore::put(uint64_t key, const std::string &s)
         }
         auto curLevel = mLevel.begin();
         curLevel->addSSTable(mMemTable);
-        while(!curLevel->exceedLimit()){
+        while(curLevel->exceedLimit()){
             if(curLevel+1 == mLevel.end()){
 //                create next level
                 createLevel();
@@ -55,8 +66,8 @@ std::string KVStore::get(uint64_t key)
                 break;
         }
     }
-//    if(res == "~DELETED~")
-//        return {};
+    if(res == "~DELETED~")
+        return {};
     return res;
 
 }

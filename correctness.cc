@@ -30,12 +30,10 @@ private:
 			EXPECT(std::string(i+1, 's'), ans);
 		}
 		phase();
-
 //        store.test();
 		// Test after all insertions
 		for (i = 0; i < max; ++i){
-            if(i == 2022)
-                int a = 1;
+
             EXPECT(std::string(i+1, 's'), store.get(i));
 
         }
@@ -71,8 +69,11 @@ private:
 //		phase();
 
 		// Test deletions
-		for (i = 0; i < max; i+=2)
-			EXPECT(true, store.del(i));
+		for (i = 0; i < max; i+=2){
+            EXPECT(true, store.del(i));
+            EXPECT((i & 1) ? std::string(i+1, 's') : not_found,
+                   store.get(i));
+        }
 
 		for (i = 0; i < max; ++i)
 			EXPECT((i & 1) ? std::string(i+1, 's') : not_found,

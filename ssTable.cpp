@@ -11,6 +11,7 @@
 
 
 SSTable::SSTable(const MemTable &memTable,const std::string &path): mBloomFilter(BLOOM_FILTER_SIZE){
+    mData.reserve(MAX_SIZE);
     mTimeStamp = SSTable::gTimeStamp++;
 //    skip BloomFilter and Header
     mNum = memTable.mNum;
@@ -75,15 +76,18 @@ std::string SSTable::getPath() const{
 SSTable::SSTable(std::vector<std::pair<uint64_t,std::string>> &vec,uint64_t timeStamp): mBloomFilter(BLOOM_FILTER_SIZE){
 //    mPath 需要调整
 //    header
+    mData.reserve(MAX_SIZE);
     mTimeStamp = timeStamp;
     mSize = 4 * sizeof(uint64_t) + BLOOM_FILTER_SIZE;
     uint32_t offset  = mSize;
     uint32_t newSize = sizeof(indexData) + vec.front().second.size();
-    while (!vec.empty() && reachLimit(newSize)){
-        auto &[key,val] = vec.front();
-        vec.pop_back();
+    while (!vec.empty() && !reachLimit(newSize)){
+        auto [key,val] = vec.front();
+        vec.erase(vec.begin());
         mNum++;
         mBloomFilter.add(key);
+        auto test = mData.size();
+
         mData+=val;
         mMax = std::max<uint64_t>(mMax,key);
         mMin = std::min<uint64_t>(mMin,key);
