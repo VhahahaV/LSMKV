@@ -8,16 +8,18 @@
 #include "bloomFilter.h"
 #include <vector>
 #include <string>
+#include <filesystem>
 #include "memTable.h"
 //constexpr int BYTE_SIZE = 8;
 class SSTable {
-    inline static uint32_t gTimeStamp = 0;
+    inline static uint64_t gTimeStamp = 0;
+    inline static const uint32_t MAX_SIZE = 1024 * 1024 * 2;
 protected:
 //    HEADER 部分
-    uint32_t mTimeStamp;
-    uint32_t mNum = 0;
-    uint32_t mMin = UINT32_MAX;
-    uint32_t mMax = 0;
+    uint64_t mTimeStamp;
+    uint64_t mNum = 0;
+    uint64_t mMin = UINT64_MAX;
+    uint64_t mMax = 0;
 //    BF 布隆过滤器区
     BloomFilter mBloomFilter;
     inline static constexpr uint32_t BLOOM_FILTER_SIZE = 1024 * 10;
@@ -32,11 +34,17 @@ protected:
 public:
     explicit SSTable(const MemTable &memTable,const std::string &path);
     explicit SSTable(const std::string &dir);
-    void flush(const std::string &dir) const;
+    explicit SSTable(std::vector<std::pair<uint64_t,std::string>> &vec,uint64_t timeStamp);
+    [[nodiscard]] uint64_t getMin() const;
+    std::string getPath() const;
+    void flush() const;
     [[nodiscard]] bool reachLimit(uint32_t newSize) const ;
     bool existKey[[nodiscard]](uint64_t key) const ;
+    bool crossKey[[nodiscard]](uint64_t minKey,uint64_t maxKey) const;
     [[nodiscard]] std::string get(uint64_t key) const;
     void cleanData();
+    void loadVector(std::vector<std::pair<uint64_t,std::string>> &vec,uint64_t &maxTimeStamp) const;
+    void rename(const std::string &dir);
     void test();
 };
 

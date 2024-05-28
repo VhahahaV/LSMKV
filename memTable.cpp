@@ -11,6 +11,8 @@ std::string MemTable::get[[maybe_unused, nodiscard]](uint64_t k){
             cur = cur->right;
         }
         if(cur->right && cur->right->key == k){
+            if (cur->right->val == "~DELETED~")
+                return {};
             return cur->right->val;
         }
         cur = cur->down;

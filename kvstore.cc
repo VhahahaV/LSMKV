@@ -2,7 +2,8 @@
 
 KVStore::KVStore(const std::string &dir): KVStoreAPI(dir),mDir(dir)
 {
-
+//    持久话，persistence，需要从文件夹中load所有数据
+    mLevel.reserve(100);
 }
 
 KVStore::~KVStore()
@@ -18,32 +19,24 @@ void KVStore::put(uint64_t key, const std::string &s)
 {
     if(!mMemTable.put(key, s)){
 //        need load to ssTable and flush
-        std::string curDir = mDir+"/level-"+std::to_string(mLevelNum);
-        if(!utils::dirExists(curDir)){
-            if(utils::mkdir(curDir.c_str()))
-                throw std::runtime_error("can't mkdir");
+        auto createLevel = [&](){
+            std::string curDir = mDir+"/level-"+std::to_string(mLevelNum);
+            mLevel.emplace_back(mLevelNum++,curDir);
+        };
+        if(mLevel.empty()){
+            createLevel();
         }
-        std::vector<std::string> subFiles;
-        int filesNum = utils::scanDir(curDir,subFiles);
-//        if(filesNum < (1<<mLevelNum)){
-//            std::cout << "prepare mk file : " << filesNum+1 << "when key = " << key << std::endl;
-
-            // os.path.join('./1', '/media/ftc/A')
-
-            std::string filePath = curDir+"/"+std::to_string(filesNum+1)+".sst";
-            SSTable ssTable(mMemTable,filePath);
-            ssTable.flush(filePath);
-            ssTable.cleanData();
-            mSSTableCache.emplace_back(ssTable);
-
-//            test flush , index's flush fails
-//            SSTable test(curDir+"/"+std::to_string(filesNum+1)+".sst");
-//            test.test();
-//        }
-//        else{
-//            need compaction
-//        }
-
+        auto curLevel = mLevel.begin();
+        curLevel->addSSTable(mMemTable);
+        while(!curLevel->exceedLimit()){
+            if(curLevel+1 == mLevel.end()){
+//                create next level
+                createLevel();
+            }
+//            compaction with next level
+            curLevel->compact(*(curLevel+1));
+            curLevel++;
+        }
         mMemTable.reset();
         mMemTable.put(key, s);
     }
@@ -56,33 +49,14 @@ std::string KVStore::get(uint64_t key)
 {
     auto res = mMemTable.get(key);
 	if(res.empty()){
-        int curLevel = 0;
-//        暂时这是为最大值，因为还没有分层
-        int numBound = INT32_MAX;
-        int totalNum = (int)mSSTableCache.size();
-        if(!totalNum) return {};
-        for(int i = 0,order = 1; i < totalNum ; i++,order++){
-//            计算在cache中的ssTable的level和次序
-            if(i > numBound){
-                curLevel++;
-                numBound += (1 << (curLevel + 1));
-                order=1;
-            }
-            auto &ssTable = mSSTableCache[totalNum-i-1];
-            if(ssTable.existKey(key)){
-                std::string val = ssTable.get(key);
-                if(!val.empty()){
-                    if(val == "~DELETED~")
-                        return {};
-                    else
-                        return val;
-                }
-            }
+        for(auto &level : mLevel){
+            res = level.get(key);
+            if(!res.empty())
+                break;
         }
-        return {};
     }
-    if(res == "~DELETED~")
-        return {};
+//    if(res == "~DELETED~")
+//        return {};
     return res;
 
 }
@@ -107,7 +81,7 @@ bool KVStore::del(uint64_t key)
 void KVStore::reset()
 {
     mMemTable.reset();
-    mSSTableCache.clear();
+    mLevel.clear();
     mLevelNum = 0;
 }
 
@@ -123,7 +97,5 @@ void KVStore::scan(uint64_t key1, uint64_t key2, std::list<std::pair<uint64_t, s
 
 void KVStore::test() {
 
-    for(auto &t : mSSTableCache){
-        t.test();
-    }
+
 }

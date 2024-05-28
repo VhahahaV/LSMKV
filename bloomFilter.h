@@ -14,8 +14,10 @@ class BloomFilter {
 protected:
 //    std::bitset<BLOOM_FILTER_SIZE> mContent{};
     std::vector<std::bitset<64>> mContent{};
-    const uint32_t mSize = 0;
+    uint32_t mSize;
 public:
+    BloomFilter(): mSize(0){};
+    BloomFilter(const BloomFilter&) = default;
     explicit BloomFilter(uint32_t bloomFilterSize);
     [[maybe_unused]] explicit BloomFilter(const std::vector<uint64_t> &content,uint32_t bloomFilterSize);
     [[maybe_unused, nodiscard]] bool contain(uint64_t key) const;

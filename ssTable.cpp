@@ -9,6 +9,7 @@
 //https://blog.csdn.net/Rasin_Wu/article/details/79048094 应该考虑二进制读写，已达到byte读写精度
 
 
+
 SSTable::SSTable(const MemTable &memTable,const std::string &path): mBloomFilter(BLOOM_FILTER_SIZE){
     mTimeStamp = SSTable::gTimeStamp++;
 //    skip BloomFilter and Header
@@ -58,16 +59,53 @@ SSTable::SSTable(const std::string &dir): mBloomFilter(BLOOM_FILTER_SIZE){
     uint32_t indexSize= mNum * sizeof(indexData);
     input.read(reinterpret_cast<char *>(mIndex.data()),indexSize);
 
+    mSize = std::filesystem::file_size(mPath);
+
 // ignore data
     input.close();
 }
+uint64_t SSTable::getMin() const{
+    return mMin;
+}
+std::string SSTable::getPath() const{
+    return mPath;
+}
+
+
+SSTable::SSTable(std::vector<std::pair<uint64_t,std::string>> &vec,uint64_t timeStamp): mBloomFilter(BLOOM_FILTER_SIZE){
+//    mPath 需要调整
+//    header
+    mTimeStamp = timeStamp;
+    mSize = 4 * sizeof(uint64_t) + BLOOM_FILTER_SIZE;
+    uint32_t offset  = mSize;
+    uint32_t newSize = sizeof(indexData) + vec.front().second.size();
+    while (!vec.empty() && reachLimit(newSize)){
+        auto &[key,val] = vec.front();
+        vec.pop_back();
+        mNum++;
+        mBloomFilter.add(key);
+        mData+=val;
+        mMax = std::max<uint64_t>(mMax,key);
+        mMin = std::min<uint64_t>(mMin,key);
+
+        mIndex.emplace_back(key,offset);
+        offset += val.size();
+
+        mSize+=newSize;
+        if(!vec.empty()) newSize = sizeof(indexData) + vec.front().second.size();
+    }
+//    更新mIndex 中的offset
+    for(auto &[key,off] : mIndex)
+        off += sizeof(indexData)*mNum;
+}
+
 
 //将ssTable落入磁盘
-void SSTable::flush(const std::string &dir) const{
+void SSTable::flush() const{
     std::ofstream output;
-    output.open(dir,std::ios::binary);
+    output.open(mPath,std::ios::binary);
     if(!output.good()){
-        std::cout << "when flush dir :" << dir;
+        std::cout << "when flush dir :" << mPath;
         throw std::runtime_error("can not open the file");
     }
     //    header
@@ -89,13 +127,16 @@ void SSTable::flush(const std::string &dir) const{
 
 }
 bool SSTable::reachLimit(uint32_t newSize) const {
-
+    return mSize + newSize > MAX_SIZE;
 }
 
 bool SSTable::existKey(uint64_t key) const {
     if(key< mMin || key > mMax)
         return false;
     return mBloomFilter.contain(key);
+}
+bool SSTable::crossKey[[nodiscard]](uint64_t minKey,uint64_t maxKey) const{
+    return minKey <= mMax || maxKey >= mMin;
 }
 
 std::string SSTable::get(uint64_t key) const{
@@ -127,3 +168,29 @@ void SSTable::test() {
         std::cout << mIndex[i].first << "  " << mIndex[i].second << std::endl;
     }
 }
+
+void SSTable::loadVector(std::vector<std::pair<uint64_t,std::string>> &vec,uint64_t &maxTimeStamp) const{
+    maxTimeStamp = std::max<uint64_t>(maxTimeStamp,mTimeStamp);
+    std::ifstream input(mPath,std::ios::binary);
+    if(!input.good()){
+        std::cout << "when get dir :" << mPath;
+        throw std::runtime_error("can not open the file");
+    }
+    for(auto index = mIndex.begin() ; index != mIndex.end() ; index++){
+        auto offset = index->second;
+        uint32_t len = (*index == mIndex.back()) ? mSize - offset :(index+1)->second - offset ;
+        if(index == mIndex.begin())
+            input.seekg(offset);
+        std::string val(len,' ');
+        input.read(val.data(),len);
+        vec.emplace_back(index->first,val);
+    }
+}
+
+void SSTable::rename(const std::string &dir){
+    if(!mPath.empty())
+        std::rename(mPath.c_str(),dir.c_str());
+    mPath = dir;
+
+}
+
