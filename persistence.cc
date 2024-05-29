@@ -106,6 +106,8 @@ private:
                     EXPECT(std::string(i+1, 't'), store.get(i));
                     break;
                 case 1:
+                    if(i == 32037)
+                        int a = 1;
                     EXPECT(std::string(i+1, 't'), store.get(i));
                     break;
                 case 2:
