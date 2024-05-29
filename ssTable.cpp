@@ -35,6 +35,10 @@ SSTable::SSTable(const MemTable &memTable,const std::string &path): mBloomFilter
         }
         cur = cur->right;
     }
+    mSize = offset;
+    if(offset != mSize){
+        std::cout << "offset = " << offset << "while mSize = " << mSize << std::endl;
+    }
 }
 
 //使用fstream,参考：https://blog.csdn.net/Long_xu/article/details/137073414
@@ -58,6 +62,7 @@ SSTable::SSTable(const std::string &dir): mBloomFilter(BLOOM_FILTER_SIZE){
     mBloomFilter.load(bfContent);
 //    indexes
     uint32_t indexSize= mNum * sizeof(indexData);
+    mIndex.reserve(mNum);
     input.read(reinterpret_cast<char *>(mIndex.data()),indexSize);
 
     mSize = std::filesystem::file_size(mPath);
@@ -80,13 +85,23 @@ SSTable::SSTable(std::vector<std::pair<uint64_t,std::string>> &vec,uint64_t time
     mTimeStamp = timeStamp;
     mSize = 4 * sizeof(uint64_t) + BLOOM_FILTER_SIZE;
     uint32_t offset  = mSize;
-    uint32_t newSize = sizeof(indexData) + vec.front().second.size();
-    while (!vec.empty() && !reachLimit(newSize)){
+
+    while (!vec.empty()){
+        if(vec.size()==1 && timeStamp==53 && vec.front().second[0] == 's'){
+            int a=1;
+            std::cout << vec.front().second << std::endl;
+        }
+
+        uint32_t newSize = sizeof(indexData) + vec.front().second.size();
+        if(reachLimit((newSize)))
+            break;
+        else
+            mSize+=newSize;
+
         auto [key,val] = vec.front();
         vec.erase(vec.begin());
         mNum++;
         mBloomFilter.add(key);
-        auto test = mData.size();
 
         mData+=val;
         mMax = std::max<uint64_t>(mMax,key);
@@ -95,8 +110,6 @@ SSTable::SSTable(std::vector<std::pair<uint64_t,std::string>> &vec,uint64_t time
         mIndex.emplace_back(key,offset);
         offset += val.size();
 
-        mSize+=newSize;
-        if(!vec.empty()) newSize = sizeof(indexData) + vec.front().second.size();
     }
 //    更新mIndex 中的offset
     for(auto &[key,off] : mIndex)
@@ -106,6 +119,8 @@ SSTable::SSTable(std::vector<std::pair<uint64_t,std::string>> &vec,uint64_t time
 
 //将ssTable落入磁盘
 void SSTable::flush() const{
+//    std::cout <<"flush path : " << mPath << std::endl;
+
     std::ofstream output;
     output.open(mPath,std::ios::binary);
     if(!output.good()){
@@ -127,6 +142,7 @@ void SSTable::flush() const{
 //  data
     int dataSize = (int)mData.size();
     output.write(mData.data(),dataSize);
+
     output.close();
 
 }
@@ -140,7 +156,8 @@ bool SSTable::existKey(uint64_t key) const {
     return mBloomFilter.contain(key);
 }
 bool SSTable::crossKey[[nodiscard]](uint64_t minKey,uint64_t maxKey) const{
-    return minKey <= mMax || maxKey >= mMin;
+    return  std::max(minKey, mMin) <= std::min(maxKey, mMax);
+//    return (minKey <= mMax && maxKey > mMin) || (maxKey >= mMin && minKey < mMax);
 }
 
 std::string SSTable::get(uint64_t key) const{
@@ -173,7 +190,7 @@ void SSTable::test() {
     }
 }
 
-void SSTable::loadVector(std::vector<std::pair<uint64_t,std::string>> &vec,uint64_t &maxTimeStamp) const{
+void SSTable::loadVector(std::vector<Key_Val> &vec, uint64_t &maxTimeStamp) const{
     maxTimeStamp = std::max<uint64_t>(maxTimeStamp,mTimeStamp);
     std::ifstream input(mPath,std::ios::binary);
     if(!input.good()){
@@ -192,8 +209,16 @@ void SSTable::loadVector(std::vector<std::pair<uint64_t,std::string>> &vec,uint6
 }
 
 void SSTable::rename(const std::string &dir){
-    if(!mPath.empty())
-        std::rename(mPath.c_str(),dir.c_str());
+    if(!mPath.empty()){
+        std::filesystem::rename(mPath.c_str(),dir.c_str());
+        if(!std::filesystem::exists(dir)){
+            std::cout << "rename fails :" << dir << std::endl;
+        }
+//        else{
+//            std::cout << "rename success from " << mPath << " to  "<<dir << std::endl;
+//        }
+    }
+
     mPath = dir;
 
 }

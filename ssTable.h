@@ -11,6 +11,8 @@
 #include <filesystem>
 #include "memTable.h"
 //constexpr int BYTE_SIZE = 8;
+using Key_Val = std::pair<uint64_t,std::string>;
+
 class SSTable {
     inline static uint64_t gTimeStamp = 0;
     inline static const uint32_t MAX_SIZE = 1024 * 1024 * 2;
@@ -43,7 +45,7 @@ public:
     bool crossKey[[nodiscard]](uint64_t minKey,uint64_t maxKey) const;
     [[nodiscard]] std::string get(uint64_t key) const;
     void cleanData();
-    void loadVector(std::vector<std::pair<uint64_t,std::string>> &vec,uint64_t &maxTimeStamp) const;
+    void loadVector(std::vector<Key_Val> &vec, uint64_t &maxTimeStamp) const;
     void rename(const std::string &dir);
     void test();
 };

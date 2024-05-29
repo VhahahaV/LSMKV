@@ -11,7 +11,7 @@
 #include <queue>
 #include <list>
 #include <random>
-class MemTable {
+class   MemTable {
     friend class SSTable;
     struct Node{
         uint64_t key;
@@ -38,6 +38,7 @@ public:
     std::string get[[maybe_unused, nodiscard]](uint64_t k);
     bool put(uint64_t k ,const std::string &v);
     bool del(uint64_t k);
+    bool empty () const;
     void reset();
     void scan(uint64_t key1, uint64_t key2, std::list<std::pair<uint64_t, std::string> > &list);
     ~MemTable();// todo:

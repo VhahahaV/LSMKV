@@ -23,13 +23,13 @@ public:
     explicit Level(uint32_t rank, std::string dirPath);
     void addSSTable(const MemTable &memTable);
     void addSSTable(const SSTable &ssTable);
-
+    
     [[nodiscard]] std::string get(uint64_t key);
     [[nodiscard]] bool exceedLimit() const;
     void compact(Level &next);
 //    合并时下一层选取的ssTable
-    void nextSelect(uint64_t minKey, uint64_t maxKey,std::vector<std::pair<uint64_t,std::string>> &vec,uint64_t &maxTimeStamp);
-    void nextMerge(std::vector<std::pair<uint64_t,std::string>> &vec,const uint64_t &maxTimeStamp);
+    void nextSelect(uint64_t minKey, uint64_t maxKey,std::vector<Key_Val> &vec,uint64_t &maxTimeStamp);
+    void nextMerge(std::vector<Key_Val > &vec,const uint64_t &maxTimeStamp);
 
 };
 

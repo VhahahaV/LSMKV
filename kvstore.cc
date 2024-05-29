@@ -58,7 +58,10 @@ void KVStore::flush(){
         createLevel();
     }
     auto curLevel = mLevel.begin();
-    curLevel->addSSTable(mMemTable);
+    if(!mMemTable.empty())
+        curLevel->addSSTable(mMemTable);
+    else
+        return;
     while(curLevel->exceedLimit()){
         if(curLevel+1 == mLevel.end()){
 //                create next level

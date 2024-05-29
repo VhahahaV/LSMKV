@@ -40,6 +40,8 @@ bool MemTable::put(uint64_t k, const std::string &v){
     if(cover){
         while(!mSkipList.empty()){
             auto curPos = mSkipList.back();
+            if(curPos->right->key != k)
+                break;
             mSkipList.pop_back();
             if(curPos->right)
                 curPos->right->val = v;
@@ -96,6 +98,9 @@ bool MemTable::del(uint64_t k){
         mSize -=  newSize;
     }
     return success;
+}
+bool MemTable::empty() const{
+    return mHead == nullptr;
 }
 
 void MemTable::reset(){

@@ -49,7 +49,8 @@ void BloomFilter::flush(std::vector<uint64_t> &content) const{
 void BloomFilter::load(const std::vector<uint64_t> &content){
     mContent.clear();
     mContent.reserve(mSize / 8);
-    for(int i = 0 ; i < mContent.size(); i++){
+
+    for(int i = 0 ; i < mSize / 8; i++){
         auto tmp = content[i];
         mContent.emplace_back(tmp);
     }
