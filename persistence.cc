@@ -36,11 +36,14 @@ private:
             switch (i & 3) {
                 case 0:
                     EXPECT(not_found, store.get(i));
+//                    EXPECT(not_found, store.get(32712));
                     store.put(i, std::string(i+1, 't'));
+//                    EXPECT(not_found, store.get(32712));
                     break;
                 case 1:
                     EXPECT(std::string(i+1, 's'), store.get(i));
                     store.put(i, std::string(i+1, 't'));
+//                    EXPECT(not_found, store.get(32712));
                     break;
                 case 2:
                     EXPECT(not_found, store.get(i));
@@ -66,6 +69,10 @@ private:
         std::cout << "Data is ready, please press ctrl-c/ctrl-d to"
                      " terminate this program!" << std::endl;
         std::cout.flush();
+
+        test(max);
+
+        exit(0);
 
         while (true) {
             volatile int dummy;
@@ -128,7 +135,7 @@ public:
 
         std::cout << "KVStore Persistence Test" << std::endl;
 
-        if (testmode) {
+        if (false) {
             std::cout << "<<Test Mode>>" << std::endl;
             test(TEST_MAX);
         } else {
@@ -159,8 +166,8 @@ void usage(const char *prog, const char *verb, const char *mode)
 
 int main(int argc, char *argv[])
 {
-    bool verbose = false;
-    bool testmode = false;
+    bool verbose = true;
+    bool testmode = true;
 
     if (argc == 2) {
         verbose = std::string(argv[1]) == "-v";

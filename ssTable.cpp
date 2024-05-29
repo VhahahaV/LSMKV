@@ -62,9 +62,18 @@ SSTable::SSTable(const std::string &dir): mBloomFilter(BLOOM_FILTER_SIZE){
     mBloomFilter.load(bfContent);
 //    indexes
     uint32_t indexSize= mNum * sizeof(indexData);
-    mIndex.reserve(mNum);
-    input.read(reinterpret_cast<char *>(mIndex.data()),indexSize);
 
+    mIndex.reserve(mNum);
+    std::vector<char> indexBuffer(indexSize);
+    input.read(indexBuffer.data(),indexSize);
+    auto indexes = reinterpret_cast<indexData*>(indexBuffer.data());
+    // 从缓冲区复制数据到mIndex
+    for (size_t i = 0; i < mNum; ++i) {
+        mIndex.emplace_back(indexes[i]);
+    }
+
+//    这句话用不了
+//    input.read(reinterpret_cast<char *>(mIndex.data()),indexSize);
     mSize = std::filesystem::file_size(mPath);
 
 // ignore data
@@ -87,10 +96,10 @@ SSTable::SSTable(std::vector<std::pair<uint64_t,std::string>> &vec,uint64_t time
     uint32_t offset  = mSize;
 
     while (!vec.empty()){
-        if(vec.size()==1 && timeStamp==53 && vec.front().second[0] == 's'){
-            int a=1;
-            std::cout << vec.front().second << std::endl;
-        }
+//        if(vec.size()==1 && timeStamp==53 && vec.front().second[0] == 's'){
+//            int a=1;
+//            std::cout << vec.front().second << std::endl;
+//        }
 
         uint32_t newSize = sizeof(indexData) + vec.front().second.size();
         if(reachLimit((newSize)))

@@ -25,11 +25,11 @@ protected:
 			++nr_passed_tests;
 			return;
 		}
-		if (verbose) {
+		if (true) {
 			std::cerr << "TEST Error @" << file << ":" << line;
             if constexpr (std::is_same_v<T, std::string>) {
-                std::cerr << ", exp length: " << exp.size() <<",exp :" <<exp<< std::endl;
-                std::cerr << ", got length :" << got.size() <<"got :"<<got << std::endl;
+                std::cerr << ", exp length: " << exp.size() <<",exp :" <<exp.front()<< std::endl;
+                std::cerr << ", got length :" << got.size() <<"got :"<<got.front() << std::endl;
             }
 		}
 	}

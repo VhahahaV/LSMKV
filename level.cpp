@@ -71,11 +71,21 @@ void Level::compact(Level &nextLevel){
             mSSTableCache.pop_back();
         }
     }
-    std::stable_sort(curVec.begin(), curVec.end());
+    for(auto &[k,v]:curVec){
+        if(k == 32712)
+            std::cout << "find 32712 : " << v.size() <<std::endl;
+    }
+    std::stable_sort(curVec.begin(), curVec.end(),[](const Key_Val &a ,const Key_Val &b)->bool {
+        return a.first < b.first;
+    });
+
+    auto unique = std::unique(curVec.begin(),curVec.end());
+
+
 //    auto u = std::unique(vec.begin(),vec.end());
     for(auto &[k,v]:curVec){
-        if(k == 2498)
-            std::cout << "find 2498 : " << v <<std::endl;
+        if(k == 32712)
+            std::cout << "find 32712 : " << v.size() <<std::endl;
     }
     uint64_t minKey = curVec.front().first, maxKey = curVec.back().first;
     if(minKey == 0 && maxKey == 12287)
@@ -84,6 +94,7 @@ void Level::compact(Level &nextLevel){
     nextLevel.nextSelect(minKey,maxKey,NextVec,maxTimeStamp);
 
 //    归并排序,而且是stable过程，第一个范围中的元素（保留其原始顺序）先于第二个范围中的元素（保留其原始顺序）。
+//    去重，保留时间戳更大的key，默认保留第一个重复的key
 //    std::stable_sort(vec.begin(),vec.end());
     std::vector<Key_Val> resVec;
     {
@@ -98,35 +109,23 @@ void Level::compact(Level &nextLevel){
                 resVec.emplace_back(NextVec[j++]);
             }
             else{
+
                 resVec.emplace_back(curVec[i++]);
-                resVec.emplace_back(NextVec[j++]);
+                j++;
             }
         }
-        while (i<curNum) resVec.emplace_back(curVec[i++]);
+        while (i<curNum) {
+//            if(curVec[i].first==32712){
+//                std::cout << "curVec : " << curVec[i].second  << std::endl;
+//            }
+            resVec.emplace_back(curVec[i++]);}
         while (j<nextNum) resVec.emplace_back(NextVec[j++]);
     }
-    for(auto &[k,v]:resVec){
-        if(k == 2498)
-            std::cout << "find 2498 : " << v <<std::endl;
-    }
-//    去重，保留时间戳更大的key，默认保留第一个重复的key
-//    auto it = std::unique(vec.begin(),vec.end());
-    auto it = (resVec.begin()+1);
-    uint64_t lastKey = resVec.begin()->first;
-    while(it != resVec.end()){
-        if(it->first == lastKey){
-            if(lastKey == 2498)
-                int a=1;
-            it = resVec.erase(it);
-
-        }
-        else{
-            lastKey = it->first;
-            if(lastKey == 2498)
-                int a=1;
-            it++;
-        }
-    }
+//    for(auto &[k,v]:resVec){
+//        if(k == 2498)
+//            std::cout << "find 2498 : " << v <<std::endl;
+//    }
+//
 
 //    将vec中的内容merge到下一层
     nextLevel.nextMerge(resVec,maxTimeStamp);

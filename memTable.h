@@ -11,6 +11,7 @@
 #include <queue>
 #include <list>
 #include <random>
+//memtable 的 mSize 有问题
 class   MemTable {
     friend class SSTable;
     struct Node{
