@@ -20,8 +20,10 @@ protected:
     const std::string mDirPath;
     MODE mMode;
 public:
-    explicit Level(uint32_t rank, const std::string &dirPath);
+    explicit Level(uint32_t rank, std::string dirPath);
     void addSSTable(const MemTable &memTable);
+    void addSSTable(const SSTable &ssTable);
+
     [[nodiscard]] std::string get(uint64_t key);
     [[nodiscard]] bool exceedLimit() const;
     void compact(Level &next);

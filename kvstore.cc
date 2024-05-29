@@ -4,21 +4,36 @@ KVStore::KVStore(const std::string &dir): KVStoreAPI(dir),mDir(dir)
 {
 //    持久话，persistence，需要从文件夹中load所有数据
     mLevel.reserve(100);
-    std::vector<std::string > subdir;
-    utils::scanDir(dir,subdir);
-    for(auto &sub:subdir){
-        auto subFiles = dir+"/"+sub;
-        std::vector<std::string > subvec;
-        utils::scanDir(subFiles,subvec);
-        std::cout << "rm dir : " << subFiles << std::endl;
-        for(auto &f:subvec)
-            utils::rmfile((subFiles+"/"+f).c_str());
-        utils::rmdir(subFiles.c_str());
+
+    std::vector<std::string > subLevels;
+    utils::scanDir(mDir, subLevels);
+    mLevelNum = mDir.size();
+    uint32_t rank = 0;
+    for(auto &level:subLevels){
+        std::string levelPath;
+        levelPath.append(mDir).append("/").append(level);
+        mLevel.emplace_back(rank++,levelPath);
+        std::vector<std::string > subSSTables;
+        utils::scanDir(levelPath, subSSTables);
+        for(auto &ssTableName:subSSTables){
+            std::string ssTablePath;
+            ssTablePath.append(levelPath).append("/").append(ssTableName);
+            SSTable ssTable(ssTablePath);
+            mLevel.back().addSSTable(ssTable);
+        }
     }
+
+
+
+//    x
 }
 
 KVStore::~KVStore()
 {
+//    将 mMemTable 中的数据落入磁盘
+    flush();
+    mLevel.clear();
+
 }
 
 /**
@@ -29,29 +44,33 @@ KVStore::~KVStore()
 void KVStore::put(uint64_t key, const std::string &s)
 {
     if(!mMemTable.put(key, s)){
-//        need load to ssTable and flush
-        auto createLevel = [&](){
-            std::string curDir = mDir+"/level-"+std::to_string(mLevelNum);
-            mLevel.emplace_back(mLevelNum++,curDir);
-        };
-        if(mLevel.empty()){
-            createLevel();
-        }
-        auto curLevel = mLevel.begin();
-        curLevel->addSSTable(mMemTable);
-        while(curLevel->exceedLimit()){
-            if(curLevel+1 == mLevel.end()){
-//                create next level
-                createLevel();
-            }
-//            compaction with next level
-            curLevel->compact(*(curLevel+1));
-            curLevel++;
-        }
-        mMemTable.reset();
+        flush();
         mMemTable.put(key, s);
     }
 }
+void KVStore::flush(){
+    //        need load to ssTable and flush
+    auto createLevel = [&](){
+        std::string curDir = mDir+"/level-"+std::to_string(mLevelNum);
+        mLevel.emplace_back(mLevelNum++,curDir);
+    };
+    if(mLevel.empty()){
+        createLevel();
+    }
+    auto curLevel = mLevel.begin();
+    curLevel->addSSTable(mMemTable);
+    while(curLevel->exceedLimit()){
+        if(curLevel+1 == mLevel.end()){
+//                create next level
+            createLevel();
+        }
+//            compaction with next level
+        curLevel->compact(*(curLevel+1));
+        curLevel++;
+    }
+    mMemTable.reset();
+}
+
 /**
  * Returns the (string) value of the given key.
  * An empty string indicates not found.
@@ -91,6 +110,25 @@ bool KVStore::del(uint64_t key)
  */
 void KVStore::reset()
 {
+    auto removeDir = [&](){
+        std::vector<std::string > subLevels;
+        utils::scanDir(mDir, subLevels);
+        for(auto &level:subLevels){
+            std::string levelPath;
+            levelPath.append(mDir).append("/").append(level);
+            std::vector<std::string > subSSTables;
+            utils::scanDir(levelPath, subSSTables);
+            std::cout << "rm dir : " << levelPath << std::endl;
+            for(auto &ssTable:subSSTables){
+                std::string ssTablePath;
+                ssTablePath.append(levelPath).append("/").append(ssTable);
+                utils::rmfile(ssTablePath.c_str());
+            }
+            utils::rmdir(levelPath.c_str());
+        }
+    };
+
+    removeDir();
     mMemTable.reset();
     mLevel.clear();
     mLevelNum = 0;

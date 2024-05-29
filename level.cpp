@@ -4,7 +4,9 @@
 
 #include "level.h"
 
-Level::Level(uint32_t rank, const std::string &dirPath) : mRank(rank), mDirPath(dirPath){
+#include <utility>
+
+Level::Level(uint32_t rank, std::string dirPath) : mRank(rank), mDirPath(std::move(dirPath)){
     if(!utils::dirExists(mDirPath)){
         if(utils::mkdir(mDirPath.c_str()))
             throw std::runtime_error("can't mkdir");
@@ -20,9 +22,12 @@ void Level::addSSTable(const MemTable &memTable){
     SSTable ssTable(memTable,filePath);
     ssTable.flush();
     ssTable.cleanData();
-    mSSTableCache.emplace_back(ssTable);
-
+    mSSTableCache.emplace_back(std::move(ssTable));
 }
+void Level::addSSTable(const SSTable &ssTable){
+    mSSTableCache.emplace_back(ssTable);
+}
+
 std::string Level::get(uint64_t key){
     int totalNum = (int)mSSTableCache.size();
     if(!totalNum) return {};
