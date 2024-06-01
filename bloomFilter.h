@@ -12,7 +12,6 @@
 
 class BloomFilter {
 protected:
-//    std::bitset<BLOOM_FILTER_SIZE> mContent{};
     std::vector<std::bitset<64>> mContent{};
     uint32_t mSize;
 public:

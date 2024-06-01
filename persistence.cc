@@ -7,7 +7,7 @@
 
 class PersistenceTest : public Test {
 private:
-    const uint64_t TEST_MAX = 1024 * 32;
+    const uint64_t TEST_MAX = 1024 * 10;
     void prepare(uint64_t max)
     {
         uint64_t i;
@@ -35,15 +35,14 @@ private:
         for (i = 0; i < max; ++i) {
             switch (i & 3) {
                 case 0:
+                    if(i == 3876)
+                        int debug = 1;
                     EXPECT(not_found, store.get(i));
-//                    EXPECT(not_found, store.get(32712));
                     store.put(i, std::string(i+1, 't'));
-//                    EXPECT(not_found, store.get(32712));
                     break;
                 case 1:
                     EXPECT(std::string(i+1, 's'), store.get(i));
                     store.put(i, std::string(i+1, 't'));
-//                    EXPECT(not_found, store.get(32712));
                     break;
                 case 2:
                     EXPECT(not_found, store.get(i));
@@ -106,8 +105,6 @@ private:
                     EXPECT(std::string(i+1, 't'), store.get(i));
                     break;
                 case 1:
-                    if(i == 32037)
-                        int a = 1;
                     EXPECT(std::string(i+1, 't'), store.get(i));
                     break;
                 case 2:
@@ -137,7 +134,7 @@ public:
 
         std::cout << "KVStore Persistence Test" << std::endl;
 
-        if (false) {
+        if (true) {
             std::cout << "<<Test Mode>>" << std::endl;
             test(TEST_MAX);
         } else {

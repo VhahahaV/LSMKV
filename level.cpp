@@ -52,17 +52,12 @@ void Level::compact(Level &nextLevel){
     uint64_t maxTimeStamp = 0;
 //   本层选取
     if(mMode == MODE::Tiering){
-//        for(auto &ssTable : mSSTableCache){
-//            ssTable.loadVector(vec,maxTimeStamp);
-//            utils::rmfile(ssTable.getPath().c_str());
-//        }
         while(!mSSTableCache.empty()){
             auto &ssTable = mSSTableCache.back();
             ssTable.loadVector(curVec,maxTimeStamp);
             utils::rmfile(ssTable.getPath().c_str());
             mSSTableCache.pop_back();
         }
-//        mSSTableCache.clear();
     }
     else{
         while (exceedLimit()){
@@ -71,31 +66,25 @@ void Level::compact(Level &nextLevel){
             mSSTableCache.pop_back();
         }
     }
-    for(auto &[k,v]:curVec){
-        if(k == 32712)
-            std::cout << "find 32712 : " << v.size() <<std::endl;
-    }
     std::stable_sort(curVec.begin(), curVec.end(),[](const Key_Val &a ,const Key_Val &b)->bool {
         return a.first < b.first;
     });
-
-    auto unique = std::unique(curVec.begin(),curVec.end());
-
-
-//    auto u = std::unique(vec.begin(),vec.end());
-    for(auto &[k,v]:curVec){
-        if(k == 32712)
-            std::cout << "find 32712 : " << v.size() <<std::endl;
+//    去重
+    uint64_t lastKey = 0;
+    auto curIt = curVec.begin();
+    while(curIt != curVec.end()){
+        if(curIt == curVec.begin() || curIt->first != lastKey)
+            lastKey = (curIt++)->first;
+        else
+            curIt = curVec.erase(curIt);
     }
+
     uint64_t minKey = curVec.front().first, maxKey = curVec.back().first;
-    if(minKey == 0 && maxKey == 12287)
-        int a = 1;
 //    下一层选取,nextVec必定是有序的
     nextLevel.nextSelect(minKey,maxKey,NextVec,maxTimeStamp);
 
 //    归并排序,而且是stable过程，第一个范围中的元素（保留其原始顺序）先于第二个范围中的元素（保留其原始顺序）。
 //    去重，保留时间戳更大的key，默认保留第一个重复的key
-//    std::stable_sort(vec.begin(),vec.end());
     std::vector<Key_Val> resVec;
     {
         size_t i = 0 ,j = 0;
@@ -109,23 +98,16 @@ void Level::compact(Level &nextLevel){
                 resVec.emplace_back(NextVec[j++]);
             }
             else{
-
                 resVec.emplace_back(curVec[i++]);
                 j++;
             }
         }
-        while (i<curNum) {
-//            if(curVec[i].first==32712){
-//                std::cout << "curVec : " << curVec[i].second  << std::endl;
-//            }
-            resVec.emplace_back(curVec[i++]);}
-        while (j<nextNum) resVec.emplace_back(NextVec[j++]);
+        while (i<curNum)
+            resVec.emplace_back(curVec[i++]);
+
+        while (j<nextNum)
+            resVec.emplace_back(NextVec[j++]);
     }
-//    for(auto &[k,v]:resVec){
-//        if(k == 2498)
-//            std::cout << "find 2498 : " << v <<std::endl;
-//    }
-//
 
 //    将vec中的内容merge到下一层
     nextLevel.nextMerge(resVec,maxTimeStamp);
@@ -154,7 +136,6 @@ void Level::nextMerge(std::vector<Key_Val> &vec, const uint64_t &maxTimeStamp){
         mSSTableCache.emplace_back(std::move(ssTable));
         newFileNum++;
     }
-
     std::sort(mSSTableCache.begin(), mSSTableCache.end(),
               [](SSTable &a , SSTable &b)->bool {return a.getMin() < b.getMin();});
 
@@ -162,20 +143,13 @@ void Level::nextMerge(std::vector<Key_Val> &vec, const uint64_t &maxTimeStamp){
     int unchangedFileNum = 0;
     while(!mSSTableCache[unchangedFileNum].getPath().empty())
         unchangedFileNum++;
-
 //    需要从后往前
-//    for(int i = unchangedFileNum + newFileNum; i < mSSTableCache.size() ; i++){
     for(int i = (int)mSSTableCache.size()-1; i >= unchangedFileNum + newFileNum ; i--){
-
         std::string filePath = mDirPath+"/"+std::to_string(i+1)+".sst";
-        if(filePath== "./data/level-2/6.sst")
-            int a = 1;
         mSSTableCache[i].rename(filePath);
     }
 //    flush 内存中的data（有一部分ssTable的mData不为空，是在emplace_back时创建的
-//    for(int i = unchangedFileNum;i < unchangedFileNum + newFileNum ; i++){
     for(int i = unchangedFileNum + newFileNum - 1;i >= unchangedFileNum  ; i--){
-
         auto &ssTable = mSSTableCache[i];
         std::string filePath = mDirPath+"/"+std::to_string(i+1)+".sst";
         ssTable.rename(filePath);

@@ -29,8 +29,8 @@ public:
     void compact(Level &next);
 //    合并时下一层选取的ssTable
     void nextSelect(uint64_t minKey, uint64_t maxKey,std::vector<Key_Val> &vec,uint64_t &maxTimeStamp);
+//     将选取的kv合并到下一层
     void nextMerge(std::vector<Key_Val > &vec,const uint64_t &maxTimeStamp);
-
 };
 
 

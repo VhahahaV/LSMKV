@@ -47,7 +47,8 @@ public:
     void cleanData();
     void loadVector(std::vector<Key_Val> &vec, uint64_t &maxTimeStamp) const;
     void rename(const std::string &dir);
-    void test();
+
+    [[maybe_unused]] void test();
 };
 
 

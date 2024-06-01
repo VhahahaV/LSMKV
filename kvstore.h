@@ -35,5 +35,4 @@ public:
 
     void flush();
 
-    [[maybe_unused]]void test();
 };

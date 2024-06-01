@@ -35,7 +35,6 @@ BloomFilter::BloomFilter(uint32_t bloomFilterSize):mSize(bloomFilterSize){
         auto idx = it / 64;
         auto offset = it % 64;
         exist &= mContent[idx][offset];
-
     }
     return exist;
 }
@@ -49,7 +48,6 @@ void BloomFilter::flush(std::vector<uint64_t> &content) const{
 void BloomFilter::load(const std::vector<uint64_t> &content){
     mContent.clear();
     mContent.reserve(mSize / 8);
-
     for(int i = 0 ; i < mSize / 8; i++){
         auto tmp = content[i];
         mContent.emplace_back(tmp);

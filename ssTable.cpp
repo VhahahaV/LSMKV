@@ -7,9 +7,6 @@
 #include <iostream>
 //   将memTable转为SSTable
 //https://blog.csdn.net/Rasin_Wu/article/details/79048094 应该考虑二进制读写，已达到byte读写精度
-
-
-
 SSTable::SSTable(const MemTable &memTable,const std::string &path): mBloomFilter(BLOOM_FILTER_SIZE){
     mData.reserve(MAX_SIZE);
     mTimeStamp = SSTable::gTimeStamp++;
@@ -62,7 +59,6 @@ SSTable::SSTable(const std::string &dir): mBloomFilter(BLOOM_FILTER_SIZE){
     mBloomFilter.load(bfContent);
 //    indexes
     uint32_t indexSize= mNum * sizeof(indexData);
-
     mIndex.reserve(mNum);
     std::vector<char> indexBuffer(indexSize);
     input.read(indexBuffer.data(),indexSize);
@@ -72,8 +68,6 @@ SSTable::SSTable(const std::string &dir): mBloomFilter(BLOOM_FILTER_SIZE){
         mIndex.emplace_back(indexes[i]);
     }
 
-//    这句话用不了
-//    input.read(reinterpret_cast<char *>(mIndex.data()),indexSize);
     mSize = std::filesystem::file_size(mPath);
 
 // ignore data
@@ -96,11 +90,6 @@ SSTable::SSTable(std::vector<std::pair<uint64_t,std::string>> &vec,uint64_t time
     uint32_t offset  = mSize;
 
     while (!vec.empty()){
-//        if(vec.size()==1 && timeStamp==53 && vec.front().second[0] == 's'){
-//            int a=1;
-//            std::cout << vec.front().second << std::endl;
-//        }
-
         uint32_t newSize = sizeof(indexData) + vec.front().second.size();
         if(reachLimit((newSize)))
             break;
@@ -128,8 +117,6 @@ SSTable::SSTable(std::vector<std::pair<uint64_t,std::string>> &vec,uint64_t time
 
 //将ssTable落入磁盘
 void SSTable::flush() const{
-//    std::cout <<"flush path : " << mPath << std::endl;
-
     std::ofstream output;
     output.open(mPath,std::ios::binary);
     if(!output.good()){
@@ -166,7 +153,6 @@ bool SSTable::existKey(uint64_t key) const {
 }
 bool SSTable::crossKey[[nodiscard]](uint64_t minKey,uint64_t maxKey) const{
     return  std::max(minKey, mMin) <= std::min(maxKey, mMax);
-//    return (minKey <= mMax && maxKey > mMin) || (maxKey >= mMin && minKey < mMax);
 }
 
 std::string SSTable::get(uint64_t key) const{
@@ -191,7 +177,7 @@ void SSTable::cleanData() {
     mData.clear();
 }
 
-void SSTable::test() {
+[[maybe_unused]] void SSTable::test() {
     std::cout <<"SStable info : "<<  mTimeStamp << " " << mNum << " " << mMin << " " << mMax << std::endl;
     std::cout << "Index nums : " << mIndex.size() << " " << std::endl;
     for (int i = 0; i < 5; ++i) {
@@ -223,11 +209,7 @@ void SSTable::rename(const std::string &dir){
         if(!std::filesystem::exists(dir)){
             std::cout << "rename fails :" << dir << std::endl;
         }
-//        else{
-//            std::cout << "rename success from " << mPath << " to  "<<dir << std::endl;
-//        }
     }
-
     mPath = dir;
 
 }

@@ -2,7 +2,7 @@
 
 KVStore::KVStore(const std::string &dir): KVStoreAPI(dir),mDir(dir)
 {
-//    持久话，persistence，需要从文件夹中load所有数据
+//    持久化，persistence，需要从文件夹中load所有数据
     mLevel.reserve(100);
 
     std::vector<std::string > subLevels;
@@ -22,10 +22,6 @@ KVStore::KVStore(const std::string &dir): KVStoreAPI(dir),mDir(dir)
             mLevel.back().addSSTable(ssTable);
         }
     }
-
-
-
-//    x
 }
 
 KVStore::~KVStore()
@@ -33,7 +29,6 @@ KVStore::~KVStore()
 //    将 mMemTable 中的数据落入磁盘
     flush();
     mLevel.clear();
-
 }
 
 /**
@@ -145,9 +140,4 @@ void KVStore::reset()
 void KVStore::scan(uint64_t key1, uint64_t key2, std::list<std::pair<uint64_t, std::string> > &list)
 {
     mMemTable.scan(key1, key2, list);
-}
-
-void KVStore::test() {
-
-
 }
